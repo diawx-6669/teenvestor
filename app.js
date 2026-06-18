@@ -1217,6 +1217,8 @@ function renderLeaderboard() {
   headers.innerHTML = `
     <th>#</th><th>${n[0]}</th><th>${n[1]}</th><th>XP</th><th>TV</th><th>${n[2]}</th>
   `;
+
+  if (typeof sbLoadLeaderboard === "function") sbLoadLeaderboard(lbFilter);
 }
 
 function getLeaderboardData() {
@@ -1648,6 +1650,10 @@ function buildHTML() {
               <tbody id="lb-tbody"></tbody>
             </table>
           </div>
+          <div class="lb-online-wrap">
+            <div class="lb-online-title">🌐 Онлайн-рейтинг</div>
+            <div id="leaderboard-list"><div class="lb-loading">Выбери фильтр выше</div></div>
+          </div>
         </div>
 
         <!-- PROFILE -->
@@ -1767,6 +1773,7 @@ function bindEvents() {
     if (filterBtn) {
       lbFilter = filterBtn.dataset.filter;
       renderLeaderboard();
+      if (typeof sbLoadLeaderboard === "function") sbLoadLeaderboard(lbFilter);
     }
   });
 

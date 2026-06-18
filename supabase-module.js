@@ -407,58 +407,96 @@ window.sbUpdateScore = sbUpdateScore;
 // ─── 10. ЗАГРУЗИТЬ ТОП-10 ────────────────────────────────────────────────────
 async function sbLoadLeaderboard(category) {
   const listEl = document.getElementById("leaderboard-list");
-  if (listEl) listEl.innerHTML = `<div class="lb-loading">Загрузка…</div>`;
+  if (!listEl) return;
+
+  listEl.innerHTML = `<div class="lb-loading">Загрузка…</div>`;
 
   const { data, error } = await _sb
     .from("leaderboards")
-    .select("score, profiles(username)")
-    .eq("category", category)
-    .order("score", { ascending: false })
+    .select("score, profiles(username)")   // JOIN через FK leaderboards.user_id → profiles.id
+    .eq("category", category)              // 'xp' | 'coins' | 'rewards' | 'solved'
+    .order("score", { ascending: false })  // сортировка по убыванию
     .limit(10);
 
   if (error) {
     console.error("[Supabase] sbLoadLeaderboard:", error.message);
-    if (listEl) listEl.innerHTML = `<div class="lb-error">Ошибка загрузки</div>`;
+    listEl.innerHTML = `<div class="lb-error">Ошибка загрузки рейтинга</div>`;
     return;
   }
 
-  if (!listEl) return;
+  if (!data || data.length === 0) {
+    listEl.innerHTML = `<div class="lb-empty">Рейтинг пока пуст — будь первым!</div>`;
+    return;
+  }
 
-  const medalColors = ["#f5c842","#b0b8c4","#cd7f32"];
-  const rows = (data ?? []).map((row, i) => {
-    const name  = row.profiles?.username ?? "Аноним";
-    const color = medalColors[i] ?? "rgba(255,255,255,0.35)";
+  const medalColors = ["#f5c842", "#b0b8c4", "#cd7f32"];
+  const medalIcons  = ["🥇", "🥈", "🥉"];
+  const catLabel    = { xp: "XP", coins: "TV монеты", rewards: "Награды", solved: "Решено задач" };
+
+  const rows = data.map((row, i) => {
+    const username = row.profiles?.username ?? "Аноним";
+    const score    = (row.score ?? 0).toLocaleString();
+    const color    = medalColors[i] ?? "rgba(255,255,255,0.35)";
+    const medal    = medalIcons[i]  ?? String(i + 1);
+    const isMe     = (typeof playerName !== "undefined") && username === playerName;
     return `
-      <div class="lb-item${i === 0 ? " lb-item--first" : ""}">
-        <div class="lb-rank" style="color:${color}">${i+1}</div>
-        <div class="lb-username">${name.replace(/</g,"&lt;")}</div>
-        <div class="lb-score" style="color:${color}">${row.score?.toLocaleString() ?? 0}</div>
+      <div class="lb-online-row${isMe ? " lb-online-row--me" : ""}">
+        <div class="lb-online-rank" style="color:${color}">${medal}</div>
+        <div class="lb-online-name">${username.replace(/</g, "&lt;")}${isMe ? " 👈" : ""}</div>
+        <div class="lb-online-score" style="color:${color}">${score}</div>
       </div>`;
   }).join("");
 
-  listEl.innerHTML = rows || `<div class="lb-empty">Рейтинг пока пуст. Будь первым!</div>`;
+  listEl.innerHTML = `
+    <div class="lb-online-category">${catLabel[category] ?? category}</div>
+    ${rows}
+  `;
 }
 window.sbLoadLeaderboard = sbLoadLeaderboard;
 
 // ─── 11. АВТОПАТЧ handleAnswer ────────────────────────────────────────────────
 function sbPatchHandleAnswer() {
-  if (typeof handleAnswer !== "function" || handleAnswer._patched) return;
+  if (typeof handleAnswer !== "function" || handleAnswer._sbPatched) return;
+
   const _orig = handleAnswer;
+
   window.handleAnswer = async function(taskId, option) {
+    // Сначала выполняем оригинальную логику app.js
     _orig(taskId, option);
-    const task = typeof TASKS !== "undefined" ? TASKS.find(tk => tk.id === taskId) : null;
-    if (task && option === task.answer) {
-      setTimeout(async () => {
-        await Promise.all([
-          sbUpdateScore("xp",      typeof xp            !== "undefined" ? xp                          : 0),
-          sbUpdateScore("coins",   typeof coins         !== "undefined" ? coins                       : 0),
-          sbUpdateScore("rewards", typeof earnedRewards !== "undefined" ? earnedRewards.length        : 0),
-          sbUpdateScore("solved",  typeof solvedTasks   !== "undefined" ? Object.keys(solvedTasks).length : 0),
-        ]);
-      }, 300);
-    }
+
+    // Проверяем что ответ правильный
+    const task = (typeof TASKS !== "undefined")
+      ? TASKS.find(tk => tk.id === taskId)
+      : null;
+
+    if (!task || option !== task.answer) return;
+
+    // 300мс — app.js успевает обновить переменные xp/coins/etc
+    setTimeout(async () => {
+      const currentXp      = typeof xp            !== "undefined" ? xp                              : 0;
+      const currentCoins   = typeof coins         !== "undefined" ? coins                           : 0;
+      const currentRewards = typeof earnedRewards !== "undefined" ? earnedRewards.length            : 0;
+      const currentSolved  = typeof solvedTasks   !== "undefined" ? Object.keys(solvedTasks).length : 0;
+
+      // Upsert по всем 4 категориям параллельно
+      await Promise.all([
+        sbUpdateScore("xp",      currentXp),
+        sbUpdateScore("coins",   currentCoins),
+        sbUpdateScore("rewards", currentRewards),
+        sbUpdateScore("solved",  currentSolved),
+      ]);
+
+      // Обновляем онлайн-рейтинг если таб открыт
+      const lbPanel = document.getElementById("tab-leaderboard");
+      if (lbPanel && lbPanel.classList.contains("active")) {
+        const cur = typeof lbFilter !== "undefined" ? lbFilter : "xp";
+        sbLoadLeaderboard(cur);
+      }
+    }, 300);
   };
-  window.handleAnswer._patched = true;
+
+  window.handleAnswer._sbPatched = true;
+  console.log("[Supabase] handleAnswer запатчен ✓");
 }
 window.sbPatchHandleAnswer = sbPatchHandleAnswer;
 
