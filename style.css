@@ -3,15 +3,15 @@
 
 :root {
   /* Основной фон сайта — мягкий, приятный для детских глаз (не режет белизной) */
-  --bg: #F4F9FF;
+  --bg: #EDF9F6;
   
   /* Белоснежные карточки, которые красиво «приподнимаются» над фоном */
   --surface: #FFFFFF;
-  --surface2: #E0EFFF;    /* Нежно-голубой для выделения второстепенных блоков */
+  --surface2: #D1EFE9;    /* Нежно-ментоловый для выделения второстепенных блоков */
   
   /* Границы элементов делаем мягкими и незаметными */
-  --border: rgba(0, 102, 204, 0.08);
-  --border-hover: rgba(0, 102, 204, 0.16);
+  --border: rgba(16, 185, 129, 0.08);
+  --border-hover: rgba(16, 185, 129, 0.16);
   
   /* Текст делаем не черным, а глубоким черничным — так он выглядит намного дружелюбнее */
   --text: #1C2D42;
@@ -40,9 +40,9 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
   background-image:
-    radial-gradient(ellipse at 20% 10%, rgba(255,107,107,0.10) 0%, transparent 40%),
-    radial-gradient(ellipse at 80% 80%, rgba(52,211,153,0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 50%, rgba(245,197,66,0.04) 0%, transparent 55%);
+    radial-gradient(ellipse at 20% 10%, rgba(74,222,128,0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 80%, rgba(6,182,212,0.06) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(255,192,0,0.03) 0%, transparent 55%);
   color: var(--text);
   font-family: var(--font);
   min-height: 100vh;
@@ -57,9 +57,9 @@ textarea::placeholder { color: rgba(16,42,67,0.35); }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,107,107,0.30); border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(74,222,128,0.30); border-radius: 8px; }
 
-select option { background: #fff1e6; color: var(--text); }
+select option { background: var(--surface2); color: var(--text); }
 
 /* ─── ANIMATIONS ───────────────────────────────────────────────────────────── */
 @keyframes fadeUp {
