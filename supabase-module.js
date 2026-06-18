@@ -1,147 +1,410 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// TEENVESTOR — SUPABASE MODULE
-// Подключи этот файл в index.html ПОСЛЕ CDN Supabase и ПЕРЕД app.js:
+// TEENVESTOR — SUPABASE MODULE  (с экраном авторизации)
+// Порядок подключения в index.html:
 //   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 //   <script src="supabase-module.js"></script>
 //   <script src="app.js"></script>
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── 1. ИНИЦИАЛИЗАЦИЯ КЛИЕНТА ─────────────────────────────────────────────────
+// ─── 1. КЛИЕНТ ────────────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://ygxwfrnlywrvbjzipdvi.supabase.co";
 const SUPABASE_ANON = "sb_publishable_FeqvfrHIDU3TfizaUJQFoA_DZFoX-6d";
-
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ─── 2. КАТЕГОРИИ ЛИДЕРБОРДА ──────────────────────────────────────────────────
-// Соответствие фильтров app.js → названия категорий в таблице leaderboards
-const LB_CATEGORIES = {
-  xp:      "xp",
-  coins:   "coins",
-  rewards: "rewards",
-  solved:  "solved",
-};
+// ─── 2. ЭКРАН АВТОРИЗАЦИИ (вставляется до лендинга) ──────────────────────────
+function _injectAuthScreen() {
+  const style = document.createElement("style");
+  style.textContent = `
+    /* ── Auth Screen ── */
+    #screen-auth {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg, #07090f);
+    }
+    #screen-auth .auth-glow {
+      position: absolute; top: 20%; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(108,110,245,0.08) 0%, transparent 70%);
+      pointer-events: none; filter: blur(14px);
+    }
+    #screen-auth .auth-inner {
+      width: 100%; max-width: 420px;
+      animation: fadeUp 0.6s ease forwards;
+    }
+    #screen-auth .auth-logo {
+      text-align: center; margin-bottom: 36px;
+    }
+    #screen-auth .auth-logo-text {
+      font-size: 42px; font-weight: 900; letter-spacing: -2px;
+      background: linear-gradient(135deg, #e8eaf0 0%, #a5b4fc 50%, #f5c842 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; line-height: 1.1; margin-bottom: 8px;
+    }
+    #screen-auth .auth-tagline {
+      font-size: 11px; letter-spacing: 4px;
+      text-transform: uppercase; color: rgba(255,255,255,0.35);
+    }
+    /* Tabs */
+    .auth-tabs {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px 14px 0 0;
+      overflow: hidden;
+    }
+    .auth-tab-btn {
+      flex: 1; padding: 14px;
+      background: transparent; border: none;
+      color: rgba(255,255,255,0.35);
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .auth-tab-btn.active {
+      background: rgba(108,110,245,0.15);
+      color: #a5b4fc;
+      border-bottom: 2px solid #6c6ef5;
+    }
+    /* Card */
+    .auth-card {
+      background: #0e1117;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-top: none;
+      border-radius: 0 0 20px 20px;
+      padding: 32px;
+    }
+    .auth-form { display: flex; flex-direction: column; gap: 0; }
+    .auth-field-label {
+      font-size: 11px; font-weight: 600;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .auth-input {
+      width: 100%; padding: 13px 16px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: #e8eaf0; font-size: 15px;
+      margin-bottom: 16px; outline: none;
+      transition: border 0.15s;
+      font-family: inherit;
+    }
+    .auth-input:focus { border-color: rgba(108,110,245,0.5); }
+    .auth-input.err   { border-color: #f43f5e; }
+    /* Grade select — same style as auth-input */
+    .auth-select {
+      width: 100%; padding: 13px 16px;
+      border-radius: 10px;
+      background: rgba(15,15,25,0.95);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: #e8eaf0; font-size: 15px;
+      margin-bottom: 16px; outline: none;
+      appearance: none; -webkit-appearance: none;
+      cursor: pointer; font-family: inherit;
+    }
+    .auth-select.placeholder { color: rgba(255,255,255,0.35); }
+    /* Message */
+    .auth-msg {
+      min-height: 20px; font-size: 12px;
+      text-align: center; margin-bottom: 14px;
+      border-radius: 8px; padding: 0 8px;
+      transition: all 0.2s;
+    }
+    .auth-msg.error   { color: #f43f5e; }
+    .auth-msg.success { color: #3ddc84; }
+    .auth-msg.info    { color: #a5b4fc; }
+    /* Submit button — reuses .btn-primary look */
+    .auth-btn {
+      width: 100%; padding: 15px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #7b61ff 0%, #5ad0ff 50%, #7b61ff 100%);
+      border: none; color: #071018;
+      font-size: 15px; font-weight: 800;
+      letter-spacing: 0.6px; cursor: pointer;
+      box-shadow: 0 8px 30px rgba(91,72,255,0.18);
+      transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms;
+      font-family: inherit;
+    }
+    .auth-btn:hover   { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(91,72,255,0.28); }
+    .auth-btn:active  { transform: translateY(-1px); }
+    .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    /* Divider */
+    .auth-divider {
+      text-align: center; font-size: 12px;
+      color: rgba(255,255,255,0.2);
+      margin: 18px 0 0;
+    }
+    .auth-divider span {
+      cursor: pointer; color: #a5b4fc;
+      text-decoration: underline;
+    }
+    /* Password toggle */
+    .auth-pw-wrap { position: relative; }
+    .auth-pw-wrap .auth-input { padding-right: 46px; }
+    .auth-pw-toggle {
+      position: absolute; right: 14px; top: 50%;
+      transform: translateY(-60%);
+      background: none; border: none;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer; font-size: 16px;
+      padding: 4px; line-height: 1;
+    }
+    .auth-pw-toggle:hover { color: rgba(255,255,255,0.7); }
+    /* Spinner */
+    .auth-spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(7,16,24,0.4);
+      border-top-color: #071018;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+  `;
+  document.head.appendChild(style);
 
-// ─── 3. РЕГИСТРАЦИЯ (Sign Up) ─────────────────────────────────────────────────
-/**
- * Регистрирует нового пользователя в Supabase Auth.
- * Никнейм передаётся в options.data.username — триггер БД создаст запись в profiles.
- *
- * @param {string} email
- * @param {string} password
- * @param {string} username  — никнейм игрока
- * @returns {{ user, error }}
- */
-async function sbSignUp(email, password, username) {
+  const div = document.createElement("div");
+  div.id = "screen-auth";
+  div.innerHTML = `
+    <div class="auth-glow"></div>
+    <div class="auth-inner">
+      <div class="auth-logo">
+        <div class="auth-logo-text">TEENVESTOR</div>
+        <div class="auth-tagline" id="auth-tagline">Учись. Зарабатывай. Побеждай.</div>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="auth-tab-login"  onclick="sbShowTab('login')">Войти</button>
+        <button class="auth-tab-btn"        id="auth-tab-register" onclick="sbShowTab('register')">Регистрация</button>
+      </div>
+
+      <div class="auth-card">
+
+        <!-- LOGIN FORM -->
+        <div id="auth-form-login">
+          <div class="auth-form">
+            <div class="auth-field-label">Email</div>
+            <input id="login-email" class="auth-input" type="email" placeholder="your@email.com" autocomplete="email" />
+
+            <div class="auth-field-label">Пароль</div>
+            <div class="auth-pw-wrap">
+              <input id="login-password" class="auth-input" type="password" placeholder="••••••••" autocomplete="current-password" />
+              <button class="auth-pw-toggle" onclick="sbTogglePw('login-password', this)" tabindex="-1">👁</button>
+            </div>
+
+            <div class="auth-msg" id="login-msg"></div>
+            <button class="auth-btn" id="login-btn" onclick="sbHandleLogin()">Войти</button>
+          </div>
+          <div class="auth-divider">Нет аккаунта? <span onclick="sbShowTab('register')">Зарегистрируйся</span></div>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="auth-form-register" style="display:none">
+          <div class="auth-form">
+            <div class="auth-field-label">Никнейм</div>
+            <input id="reg-username" class="auth-input" type="text" placeholder="Твой игровой ник" autocomplete="off" maxlength="32" />
+
+            <div class="auth-field-label">Класс</div>
+            <select id="reg-grade" class="auth-select placeholder">
+              <option value="">Выбери класс</option>
+              ${[5,6,7,8,9,10,11].map(g => `<option value="${g}">${g} класс</option>`).join("")}
+            </select>
+
+            <div class="auth-field-label">Email</div>
+            <input id="reg-email" class="auth-input" type="email" placeholder="your@email.com" autocomplete="email" />
+
+            <div class="auth-field-label">Пароль</div>
+            <div class="auth-pw-wrap">
+              <input id="reg-password" class="auth-input" type="password" placeholder="Минимум 6 символов" autocomplete="new-password" />
+              <button class="auth-pw-toggle" onclick="sbTogglePw('reg-password', this)" tabindex="-1">👁</button>
+            </div>
+
+            <div class="auth-msg" id="reg-msg"></div>
+            <button class="auth-btn" id="reg-btn" onclick="sbHandleRegister()">Создать аккаунт</button>
+          </div>
+          <div class="auth-divider">Уже есть аккаунт? <span onclick="sbShowTab('login')">Войти</span></div>
+        </div>
+
+      </div><!-- /auth-card -->
+    </div><!-- /auth-inner -->
+  `;
+
+  // Вставляем ПЕРЕД #app
+  document.body.insertBefore(div, document.getElementById("app"));
+}
+
+// ─── 3. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ──────────────────────────────────────────────────
+function sbShowTab(tab) {
+  const isLogin = tab === "login";
+  document.getElementById("auth-form-login").style.display    = isLogin ? "block" : "none";
+  document.getElementById("auth-form-register").style.display = isLogin ? "none"  : "block";
+  document.getElementById("auth-tab-login").classList.toggle("active",    isLogin);
+  document.getElementById("auth-tab-register").classList.toggle("active", !isLogin);
+  // сбрасываем сообщения
+  ["login-msg","reg-msg"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ""; el.className = "auth-msg"; }
+  });
+}
+window.sbShowTab = sbShowTab;
+
+// ─── 4. ПОКАЗАТЬ / СКРЫТЬ ПАРОЛЬ ─────────────────────────────────────────────
+function sbTogglePw(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const hidden = inp.type === "password";
+  inp.type = hidden ? "text" : "password";
+  btn.textContent = hidden ? "🙈" : "👁";
+}
+window.sbTogglePw = sbTogglePw;
+
+// ─── 5. ВСПОМОГАЛКИ UI ────────────────────────────────────────────────────────
+function _setMsg(id, text, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = `auth-msg ${type}`;
+}
+
+function _setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn._origText = btn.textContent;
+    btn.innerHTML = `<span class="auth-spinner"></span>Загрузка…`;
+  } else {
+    btn.innerHTML = btn._origText || "OK";
+  }
+}
+
+// ─── 6. РЕГИСТРАЦИЯ ───────────────────────────────────────────────────────────
+async function sbHandleRegister() {
+  const username = document.getElementById("reg-username")?.value.trim();
+  const grade    = document.getElementById("reg-grade")?.value;
+  const email    = document.getElementById("reg-email")?.value.trim();
+  const password = document.getElementById("reg-password")?.value;
+
+  // Валидация
+  if (!username) { _setMsg("reg-msg", "Введи никнейм", "error"); return; }
+  if (!grade)    { _setMsg("reg-msg", "Выбери класс",  "error"); return; }
+  if (!email)    { _setMsg("reg-msg", "Введи email",   "error"); return; }
+  if (!password || password.length < 6) {
+    _setMsg("reg-msg", "Пароль — минимум 6 символов", "error"); return;
+  }
+
+  _setLoading("reg-btn", true);
+  _setMsg("reg-msg", "", "");
+
   const { data, error } = await _sb.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { username },
-    },
+    email, password,
+    options: { data: { username, grade } },
   });
 
+  _setLoading("reg-btn", false);
+
   if (error) {
-    console.error("[Supabase] Sign Up error:", error.message);
-    return { user: null, error };
+    const msgs = {
+      "User already registered": "Этот email уже зарегистрирован",
+      "Password should be at least 6 characters": "Пароль — минимум 6 символов",
+    };
+    _setMsg("reg-msg", msgs[error.message] ?? error.message, "error");
+    return;
   }
 
-  console.log("[Supabase] Sign Up success:", data.user?.id);
-  return { user: data.user, error: null };
+  // Supabase может сразу вернуть сессию или потребовать подтверждение email
+  if (data.session) {
+    _enterGame(data.user, username, grade);
+  } else {
+    _setMsg("reg-msg", "Проверь почту и подтверди аккаунт!", "success");
+  }
 }
+window.sbHandleRegister = sbHandleRegister;
 
-// ─── 4. ВХОД (Sign In) ────────────────────────────────────────────────────────
-/**
- * Авторизует существующего пользователя.
- *
- * @param {string} email
- * @param {string} password
- * @returns {{ user, error }}
- */
-async function sbSignIn(email, password) {
+// ─── 7. ВХОД ──────────────────────────────────────────────────────────────────
+async function sbHandleLogin() {
+  const email    = document.getElementById("login-email")?.value.trim();
+  const password = document.getElementById("login-password")?.value;
+
+  if (!email)    { _setMsg("login-msg", "Введи email",   "error"); return; }
+  if (!password) { _setMsg("login-msg", "Введи пароль",  "error"); return; }
+
+  _setLoading("login-btn", true);
+  _setMsg("login-msg", "", "");
+
   const { data, error } = await _sb.auth.signInWithPassword({ email, password });
 
+  _setLoading("login-btn", false);
+
   if (error) {
-    console.error("[Supabase] Sign In error:", error.message);
-    return { user: null, error };
+    const msgs = {
+      "Invalid login credentials": "Неверный email или пароль",
+      "Email not confirmed":       "Сначала подтверди email",
+    };
+    _setMsg("login-msg", msgs[error.message] ?? error.message, "error");
+    return;
   }
 
-  console.log("[Supabase] Sign In success:", data.user?.id);
-  return { user: data.user, error: null };
+  const meta     = data.user.user_metadata ?? {};
+  const username = meta.username ?? email.split("@")[0];
+  const grade    = meta.grade    ?? "";
+  _enterGame(data.user, username, grade);
+}
+window.sbHandleLogin = sbHandleLogin;
+
+// ─── 8. ПЕРЕХОД В ИГРУ ────────────────────────────────────────────────────────
+function _enterGame(user, username, grade) {
+  // Прячем экран авторизации
+  document.getElementById("screen-auth").style.display = "none";
+
+  // Пробрасываем данные в app.js
+  if (typeof playerName !== "undefined") playerName = username;
+  if (typeof playerGrade !== "undefined") playerGrade = grade;
+
+  // Если лендинг всё ещё активен — автозаполняем и запускаем игру
+  const nameInput  = document.getElementById("landing-name");
+  const gradeInput = document.getElementById("landing-grade");
+  if (nameInput)  nameInput.value  = username;
+  if (gradeInput && grade) {
+    gradeInput.value = grade;
+    gradeInput.classList.remove("placeholder");
+  }
+
+  // Запускаем игру через функцию app.js
+  if (typeof startAndScroll === "function") {
+    startAndScroll();
+  } else if (typeof startGame === "function") {
+    startGame();
+  }
+
+  // Патчим handleAnswer для авто-синхронизации очков
+  sbPatchHandleAnswer();
 }
 
-// ─── 5. ВЫХОД (Sign Out) ──────────────────────────────────────────────────────
-async function sbSignOut() {
-  const { error } = await _sb.auth.signOut();
-  if (error) console.error("[Supabase] Sign Out error:", error.message);
-}
-
-// ─── 6. ПОЛУЧИТЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ ───────────────────────────────────────
-/**
- * Возвращает текущего авторизованного пользователя или null.
- * @returns {User|null}
- */
-async function sbGetCurrentUser() {
-  const { data: { user } } = await _sb.auth.getUser();
-  return user ?? null;
-}
-
-// ─── 7. ОБНОВЛЕНИЕ РЕКОРДА В ЛИДЕРБОРДЕ ──────────────────────────────────────
-/**
- * Upsert-записи в таблицу leaderboards.
- * Если запись для этого user_id + category уже есть — обновляет score,
- * если нет — создаёт новую.
- *
- * Структура таблицы leaderboards (минимум):
- *   id          uuid  PK default gen_random_uuid()
- *   user_id     uuid  FK → auth.users(id)
- *   category    text  ('xp' | 'coins' | 'rewards' | 'solved')
- *   score       int
- *   updated_at  timestamptz default now()
- *
- * На колонки (user_id, category) должен стоять UNIQUE constraint,
- * чтобы upsert работал через onConflict.
- *
- * @param {string} category  — одна из: 'xp', 'coins', 'rewards', 'solved'
- * @param {number} score     — текущее значение очков
- * @returns {{ data, error }}
- */
+// ─── 9. ОБНОВЛЕНИЕ РЕКОРДА В ЛИДЕРБОРДЕ ──────────────────────────────────────
 async function sbUpdateScore(category, score) {
-  const user = await sbGetCurrentUser();
-  if (!user) {
-    console.warn("[Supabase] sbUpdateScore: пользователь не авторизован");
-    return { data: null, error: new Error("Not authenticated") };
-  }
+  const { data: { user } } = await _sb.auth.getUser();
+  if (!user) return;
 
-  const { data, error } = await _sb
+  const { error } = await _sb
     .from("leaderboards")
     .upsert(
-      {
-        user_id:    user.id,
-        category,
-        score,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,category" }   // требует UNIQUE(user_id, category)
+      { user_id: user.id, category, score, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,category" }
     );
 
-  if (error) {
-    console.error(`[Supabase] sbUpdateScore(${category}) error:`, error.message);
-  }
-
-  return { data, error };
+  if (error) console.error(`[Supabase] sbUpdateScore(${category}):`, error.message);
 }
+window.sbUpdateScore = sbUpdateScore;
 
-// ─── 8. ЗАГРУЗИТЬ ТОП-10 ЛИДЕРБОРДА ──────────────────────────────────────────
-/**
- * Запрашивает топ-10 записей по категории из таблицы leaderboards,
- * джойнит никнеймы из таблицы profiles и рендерит список в #leaderboard-list.
- *
- * Структура таблицы profiles (минимум):
- *   id        uuid PK FK → auth.users(id)
- *   username  text
- *
- * @param {string} category  — одна из: 'xp', 'coins', 'rewards', 'solved'
- */
+// ─── 10. ЗАГРУЗИТЬ ТОП-10 ────────────────────────────────────────────────────
 async function sbLoadLeaderboard(category) {
   const listEl = document.getElementById("leaderboard-list");
   if (listEl) listEl.innerHTML = `<div class="lb-loading">Загрузка…</div>`;
@@ -154,229 +417,83 @@ async function sbLoadLeaderboard(category) {
     .limit(10);
 
   if (error) {
-    console.error("[Supabase] sbLoadLeaderboard error:", error.message);
-    if (listEl) listEl.innerHTML = `<div class="lb-error">Ошибка загрузки рейтинга</div>`;
+    console.error("[Supabase] sbLoadLeaderboard:", error.message);
+    if (listEl) listEl.innerHTML = `<div class="lb-error">Ошибка загрузки</div>`;
     return;
   }
 
-  _renderLeaderboardList(data, category);
-}
-
-// ─── 9. РЕНДЕР СПИСКА ЛИДЕРБОРДА ─────────────────────────────────────────────
-/**
- * Внутренняя функция — рендерит топ-10 в блок #leaderboard-list.
- * Медали: 1 место — золото, 2 — серебро, 3 — бронза.
- */
-function _renderLeaderboardList(rows, category) {
-  const listEl = document.getElementById("leaderboard-list");
   if (!listEl) return;
 
-  if (!rows || rows.length === 0) {
-    listEl.innerHTML = `<div class="lb-empty">Рейтинг пока пуст. Будь первым!</div>`;
-    return;
-  }
-
-  const medalColors = ["#f5c842", "#b0b8c4", "#cd7f32"];
-  const categoryLabel = {
-    xp:      "XP",
-    coins:   "TV монеты",
-    rewards: "Награды",
-    solved:  "Решено задач",
-  }[category] ?? category;
-
-  const items = rows.map((row, idx) => {
-    const username = row.profiles?.username ?? "Аноним";
-    const score    = row.score ?? 0;
-    const rank     = idx + 1;
-    const medalColor = medalColors[idx] ?? "rgba(255,255,255,0.35)";
-
+  const medalColors = ["#f5c842","#b0b8c4","#cd7f32"];
+  const rows = (data ?? []).map((row, i) => {
+    const name  = row.profiles?.username ?? "Аноним";
+    const color = medalColors[i] ?? "rgba(255,255,255,0.35)";
     return `
-      <div class="lb-item ${idx === 0 ? "lb-item--first" : ""}">
-        <div class="lb-rank" style="color:${medalColor}">${rank}</div>
-        <div class="lb-username">${_escapeHtml(username)}</div>
-        <div class="lb-score" style="color:${medalColor}">${score.toLocaleString()}</div>
-      </div>
-    `;
+      <div class="lb-item${i === 0 ? " lb-item--first" : ""}">
+        <div class="lb-rank" style="color:${color}">${i+1}</div>
+        <div class="lb-username">${name.replace(/</g,"&lt;")}</div>
+        <div class="lb-score" style="color:${color}">${row.score?.toLocaleString() ?? 0}</div>
+      </div>`;
   }).join("");
 
-  listEl.innerHTML = `
-    <div class="lb-category-label">${categoryLabel}</div>
-    <div class="lb-items">${items}</div>
-  `;
+  listEl.innerHTML = rows || `<div class="lb-empty">Рейтинг пока пуст. Будь первым!</div>`;
 }
+window.sbLoadLeaderboard = sbLoadLeaderboard;
 
-/** Экранирует HTML-спецсимволы в никнеймах */
-function _escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-// ─── 10. СЛУШАТЕЛЬ ИЗМЕНЕНИЙ АВТОРИЗАЦИИ ─────────────────────────────────────
-/**
- * Вызывается автоматически при входе / выходе.
- * Синхронизирует имя игрока с никнеймом из Supabase.
- */
-_sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === "SIGNED_IN" && session?.user) {
-    const meta = session.user.user_metadata;
-    if (meta?.username && typeof playerName !== "undefined") {
-      playerName = meta.username;
+// ─── 11. АВТОПАТЧ handleAnswer ────────────────────────────────────────────────
+function sbPatchHandleAnswer() {
+  if (typeof handleAnswer !== "function" || handleAnswer._patched) return;
+  const _orig = handleAnswer;
+  window.handleAnswer = async function(taskId, option) {
+    _orig(taskId, option);
+    const task = typeof TASKS !== "undefined" ? TASKS.find(tk => tk.id === taskId) : null;
+    if (task && option === task.answer) {
+      setTimeout(async () => {
+        await Promise.all([
+          sbUpdateScore("xp",      typeof xp            !== "undefined" ? xp                          : 0),
+          sbUpdateScore("coins",   typeof coins         !== "undefined" ? coins                       : 0),
+          sbUpdateScore("rewards", typeof earnedRewards !== "undefined" ? earnedRewards.length        : 0),
+          sbUpdateScore("solved",  typeof solvedTasks   !== "undefined" ? Object.keys(solvedTasks).length : 0),
+        ]);
+      }, 300);
     }
-    console.log("[Supabase] Auth state: SIGNED_IN →", session.user.id);
-  }
+  };
+  window.handleAnswer._patched = true;
+}
+window.sbPatchHandleAnswer = sbPatchHandleAnswer;
 
-  if (event === "SIGNED_OUT") {
-    console.log("[Supabase] Auth state: SIGNED_OUT");
+// ─── 12. СЛУШАТЕЛЬ СЕССИИ ────────────────────────────────────────────────────
+_sb.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_IN" && session?.user) {
+    const meta = session.user.user_metadata ?? {};
+    if (meta.username && typeof playerName !== "undefined") playerName = meta.username;
   }
 });
 
-// ─── 11. ПРИВЯЗКА ФОРМ (Sign Up / Sign In) ────────────────────────────────────
-/**
- * Вызови эту функцию ПОСЛЕ того, как buildHTML() отрисует формы в DOM.
- * Она вешает обработчики на #register-form и #login-form.
- *
- * Ожидаемая структура форм в HTML:
- *
- * <!-- Форма регистрации -->
- * <form id="register-form">
- *   <input id="reg-username" type="text"     placeholder="Никнейм" />
- *   <input id="reg-email"    type="email"    placeholder="Email" />
- *   <input id="reg-password" type="password" placeholder="Пароль" />
- *   <button type="submit">Зарегистрироваться</button>
- *   <div id="reg-msg"></div>
- * </form>
- *
- * <!-- Форма входа -->
- * <form id="login-form">
- *   <input id="login-email"    type="email"    placeholder="Email" />
- *   <input id="login-password" type="password" placeholder="Пароль" />
- *   <button type="submit">Войти</button>
- *   <div id="login-msg"></div>
- * </form>
- */
-function sbBindAuthForms() {
-  const registerForm = document.getElementById("register-form");
-  const loginForm    = document.getElementById("login-form");
+// ─── 13. СТАРТ: вставить экран и скрыть лендинг до авторизации ───────────────
+(function _init() {
+  function _setup() {
+    // Скрываем обычный лендинг — пользователь сначала должен войти
+    const landing = document.getElementById("screen-landing");
+    if (landing) landing.style.display = "none";
+    _injectAuthScreen();
 
-  // — Регистрация —
-  if (registerForm) {
-    registerForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const username = document.getElementById("reg-username")?.value.trim();
-      const email    = document.getElementById("reg-email")?.value.trim();
-      const password = document.getElementById("reg-password")?.value;
-      const msgEl    = document.getElementById("reg-msg");
-
-      if (!username || !email || !password) {
-        if (msgEl) msgEl.textContent = "Заполни все поля";
-        return;
-      }
-
-      if (msgEl) msgEl.textContent = "Регистрируем…";
-
-      const { user, error } = await sbSignUp(email, password, username);
-
-      if (error) {
-        if (msgEl) msgEl.textContent = `Ошибка: ${error.message}`;
-        return;
-      }
-
-      // Успешная регистрация — обновляем имя игрока и запускаем игру
-      if (user) {
-        playerName = username;
-        if (msgEl) msgEl.textContent = "Готово! Проверь почту для подтверждения.";
+    // Если сессия уже есть (повторный визит) — сразу в игру
+    _sb.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const meta     = session.user.user_metadata ?? {};
+        const username = meta.username ?? session.user.email.split("@")[0];
+        const grade    = meta.grade    ?? "";
+        _enterGame(session.user, username, grade);
       }
     });
   }
 
-  // — Вход —
-  if (loginForm) {
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const email    = document.getElementById("login-email")?.value.trim();
-      const password = document.getElementById("login-password")?.value;
-      const msgEl    = document.getElementById("login-msg");
-
-      if (!email || !password) {
-        if (msgEl) msgEl.textContent = "Введи email и пароль";
-        return;
-      }
-
-      if (msgEl) msgEl.textContent = "Входим…";
-
-      const { user, error } = await sbSignIn(email, password);
-
-      if (error) {
-        if (msgEl) msgEl.textContent = `Ошибка: ${error.message}`;
-        return;
-      }
-
-      if (user) {
-        // Подтягиваем никнейм из metadata
-        const username = user.user_metadata?.username ?? email.split("@")[0];
-        playerName = username;
-        if (msgEl) msgEl.textContent = `Добро пожаловать, ${username}!`;
-      }
-    });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", _setup);
+  } else {
+    _setup();
   }
-}
+})();
 
-// ─── 12. АВТОСИНХРОНИЗАЦИЯ ОЧКОВ ──────────────────────────────────────────────
-/**
- * Патчит handleAnswer() из app.js — после каждого правильного ответа
- * автоматически пушит все 4 метрики в Supabase.
- *
- * Вызови sbPatchHandleAnswer() один раз после загрузки app.js.
- * Требует, чтобы переменные xp, coins, earnedRewards, solvedTasks
- * были глобальными (они таковы в app.js).
- */
-function sbPatchHandleAnswer() {
-  if (typeof handleAnswer !== "function") {
-    console.warn("[Supabase] handleAnswer не найдена — патч пропущен");
-    return;
-  }
-
-  const _originalHandleAnswer = handleAnswer;
-
-  // Переопределяем глобальную функцию
-  window.handleAnswer = async function(taskId, option) {
-    _originalHandleAnswer(taskId, option);
-
-    // Синхронизируем только если ответ был правильным
-    const task = (typeof TASKS !== "undefined")
-      ? TASKS.find(tk => tk.id === taskId)
-      : null;
-
-    if (task && option === task.answer) {
-      // Небольшая задержка, чтобы app.js успел обновить переменные
-      setTimeout(async () => {
-        await Promise.all([
-          sbUpdateScore("xp",      typeof xp            !== "undefined" ? xp            : 0),
-          sbUpdateScore("coins",   typeof coins         !== "undefined" ? coins         : 0),
-          sbUpdateScore("rewards", typeof earnedRewards !== "undefined" ? earnedRewards.length : 0),
-          sbUpdateScore("solved",  typeof solvedTasks   !== "undefined" ? Object.keys(solvedTasks).length : 0),
-        ]);
-      }, 200);
-    }
-  };
-
-  console.log("[Supabase] handleAnswer успешно запатчен");
-}
-
-// ─── 13. ПУБЛИЧНОЕ API ────────────────────────────────────────────────────────
-// Все функции уже глобальные (через window), но для удобства явно экспортируем:
-window.sbSignUp          = sbSignUp;
-window.sbSignIn          = sbSignIn;
-window.sbSignOut         = sbSignOut;
-window.sbGetCurrentUser  = sbGetCurrentUser;
-window.sbUpdateScore     = sbUpdateScore;
-window.sbLoadLeaderboard = sbLoadLeaderboard;
-window.sbBindAuthForms   = sbBindAuthForms;
-window.sbPatchHandleAnswer = sbPatchHandleAnswer;
-
-console.log("[Supabase] TEENVESTOR module loaded ✓");
+console.log("[Supabase] TEENVESTOR auth module loaded ✓");
