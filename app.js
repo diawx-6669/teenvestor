@@ -1,7 +1,7 @@
 // ─── TRANSLATIONS ────────────────────────────────────────────────────────────
 const T = {
   ru: {
-  appName: "",
+  appName: "TEENVESTOR",
     tagline: "Учись. Зарабатывай. Побеждай.",
     enterName: "Введи своё имя",
     selectClass: "Выбери класс",
@@ -89,7 +89,7 @@ const T = {
     teamBonus: "Сундук открыт! +200 монет каждому",
   },
   kz: {
-    appName: "",
+    appName: "TEENVESTOR",
     tagline: "Оқы. Тап. Жең.",
     enterName: "Атыңды жаз",
     selectClass: "Сыныпты таңда",
@@ -172,7 +172,7 @@ const T = {
     teamBonus: "Сандық ашылды! +200 монета әркімге",
   },
   en: {
-    appName: "",
+    appName: "TEENVESTOR",
     tagline: "Learn. Earn. Win.",
     enterName: "Enter your name",
     selectClass: "Select your grade",

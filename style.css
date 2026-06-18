@@ -13,18 +13,18 @@
   --border: rgba(255, 140, 0, 0.12);
   --border-hover: rgba(255, 140, 0, 0.24);
   
-  /* Текст — насыщенный тёмно-фиолетовый, не черный */
-  --text: #2D1B6B;
-  --muted: #9B7EC8;       /* Лавандовый для подписей */
+  /* Текст — глубокий тёмно-синий, контрастный и дружелюбный */
+  --text: #1A1035;
+  --muted: #5C4A82;       /* Средне-фиолетовый — контрастный и дружелюбный */
   
   /* Главный акцент — сочный малиново-розовый */
   --accent: #FF3D7F;
-  --accent2: #00D4AA;     /* Бирюзово-мятный для баланса */
+  --accent2: #009E80;     /* Тёмная бирюза — читается на белом */
   --accent-glow: rgba(255, 61, 127, 0.18);
   
   /* Яркие детские цвета */
-  --gold: #FFB800;        /* Насыщенное золото */
-  --green: #00C853;       /* Ярко-зелёный для успеха */
+  --gold: #D4920A;        /* Насыщенное тёмное золото — читается на белом */
+  --green: #00A844;       /* Тёмно-зелёный — хорошо читается */
   --red: #FF4444;         /* Чёткий красный для ошибок */
   --teal: #00BCD4;        /* Небесно-бирюзовый */
   --orange: #FF6D00;      /* Сочный оранжевый */
@@ -54,7 +54,7 @@ button { font-family: var(--font); cursor: pointer; }
 input, textarea, select { font-family: var(--font); }
 
 input::placeholder,
-textarea::placeholder { color: rgba(45,27,107,0.35); }
+textarea::placeholder { color: rgba(26,16,53,0.40); }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -575,7 +575,7 @@ select option { background: var(--surface2); color: var(--text); }
   font-weight: 900;
   background: rgba(45,27,107,0.05);
   border: 1.5px solid rgba(45,27,107,0.12);
-  color: rgba(45,27,107,0.2);
+  color: rgba(26,16,53,0.30);
 }
 .island-badge.solved {
   background: rgba(61,220,132,0.15);
@@ -592,7 +592,7 @@ select option { background: var(--surface2); color: var(--text); }
 .island-title {
   font-size: 14px;
   font-weight: 700;
-  color: rgba(45,27,107,0.20);
+  color: rgba(26,16,53,0.30);
   margin-bottom: 3px;
   letter-spacing: 0.2px;
 }
@@ -601,7 +601,7 @@ select option { background: var(--surface2); color: var(--text); }
 
 .island-meta {
   font-size: 11px;
-  color: rgba(45,27,107,0.12);
+  color: rgba(26,16,53,0.22);
   letter-spacing: 0.5px;
 }
 .island-btn.state-solved .island-meta { color: rgba(61,220,132,0.55); }
@@ -1043,7 +1043,7 @@ select option { background: var(--surface2); color: var(--text); }
   background: none;
   border: none;
   font-size: 24px;
-  color: rgba(45,27,107,0.15);
+  color: rgba(26,16,53,0.20);
   transition: color 0.12s;
   padding: 0 2px;
   outline: none;
@@ -1111,7 +1111,7 @@ select option { background: var(--surface2); color: var(--text); }
 .review-name { font-weight: 700; font-size: 14px; color: var(--text); }
 .review-grade { color: var(--muted); font-size: 11px; }
 .review-stars { color: var(--gold); letter-spacing: 1px; font-size: 14px; }
-.review-text { color: rgba(45,27,107,0.65); font-size: 14px; line-height: 1.65; }
+.review-text { color: rgba(26,16,53,0.72); font-size: 14px; line-height: 1.65; }
 
 /* ─── CASE ROULETTE OVERLAY ──────────────────────────────────────────────── */
 .overlay {
