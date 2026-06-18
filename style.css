@@ -504,7 +504,7 @@ select option { background: #fff1e6; color: var(--text); }
 .connector-line {
   width: 2px;
   height: 28px;
-  border-left: 2px dashed rgba(255,255,255,0.1);
+  border-left: 2px dashed rgba(16,42,67,0.08);
   margin-bottom: 0;
   flex-shrink: 0;
 }
@@ -517,8 +517,8 @@ select option { background: #fff1e6; color: var(--text); }
   width: min(100%, 380px);
   padding: 18px 22px;
   border-radius: 20px;
-  border: 2px solid rgba(255,255,255,0.08);
-  background: linear-gradient(135deg, #111318, #0c0d11);
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(34,211,238,0.06), rgba(52,211,153,0.04));
   text-align: left;
   outline: none;
   position: relative;
